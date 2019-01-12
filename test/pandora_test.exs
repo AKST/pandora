@@ -58,7 +58,7 @@ defmodule PandoraTest do
     end
 
     test "<Hello to=\"world\"/>" do
-      init = T.create_element("Hello", %{ "to" => "world" })
+      init = T.create_element("Hello", %{"to" => "world"})
       expect = "<Hello to=\"world\"/>"
       assert T.to_string(init) == expect
     end
@@ -86,31 +86,40 @@ defmodule PandoraTest do
     end
 
     test "with xml declaration" do
-      document = T.create_document(
-        Data.declaration(version: "1.0", encoding: :utf8, standalone: true),
-        nil,
-        [Data.text(value: "body")]
-      )
+      document =
+        T.create_document(
+          Data.declaration(version: "1.0", encoding: :utf8, standalone: true),
+          nil,
+          [Data.text(value: "body")]
+        )
+
       expect = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>body"
       assert T.to_string(document) == expect
     end
 
     test "with doctype" do
-      document = T.create_document(
-        nil,
-        Data.doctype(root_node: "html", dtds: [
-          {:public, "a", "b"},
-          {:system, "c"},
-          {:inlined, "<!-- nothing -->"},
-        ]),
-        [T.create_element("html")]
-      )
-      expect = Enum.join([
-        "<!DOCTYPE html PUBLIC \"a\" \"b\"",
-        " SYSTEM \"c\"",
-        " [<!-- nothing -->]>",
-        "<html/>",
-      ])
+      document =
+        T.create_document(
+          nil,
+          Data.doctype(
+            root_node: "html",
+            dtds: [
+              {:public, "a", "b"},
+              {:system, "c"},
+              {:inlined, "<!-- nothing -->"}
+            ]
+          ),
+          [T.create_element("html")]
+        )
+
+      expect =
+        Enum.join([
+          "<!DOCTYPE html PUBLIC \"a\" \"b\"",
+          " SYSTEM \"c\"",
+          " [<!-- nothing -->]>",
+          "<html/>"
+        ])
+
       assert T.to_string(document) == expect
     end
 
@@ -119,12 +128,14 @@ defmodule PandoraTest do
         T.create_document(
           nil,
           nil,
-          [T.create_ns_element(
-            "Hello",
-            "World",
-            %{},
-            [T.create_text("!")]
-          )]
+          [
+            T.create_ns_element(
+              "Hello",
+              "World",
+              %{},
+              [T.create_text("!")]
+            )
+          ]
         )
 
       expect = "<Hello:World>!</Hello:World>"
@@ -137,12 +148,14 @@ defmodule PandoraTest do
         T.create_document(
           nil,
           nil,
-          [T.create_ns_element(
-            "t",
-            "foo",
-            %{ {"t", "bar"} => "baz" },
-            []
-          )]
+          [
+            T.create_ns_element(
+              "t",
+              "foo",
+              %{{"t", "bar"} => "baz"},
+              []
+            )
+          ]
         )
 
       expect = "<t:foo t:bar=\"baz\"/>"
@@ -160,11 +173,13 @@ defmodule PandoraTest do
         T.create_document(
           nil,
           nil,
-          [T.create_element(
-            "Hello",
-            %{},
-            [T.create_text("world")]
-          )]
+          [
+            T.create_element(
+              "Hello",
+              %{},
+              [T.create_text("world")]
+            )
+          ]
         )
 
       assert T.equal(result, expect)
@@ -282,11 +297,14 @@ defmodule PandoraTest do
     test "<Hello to=\"world\"/>" do
       init = "<Hello to=\"world\"/>"
       {:ok, result} = T.from_string(init)
-      expect = T.create_document(
-        nil,
-        nil,
-        [T.create_element("Hello", %{ "to" => "world" })]
-      )
+
+      expect =
+        T.create_document(
+          nil,
+          nil,
+          [T.create_element("Hello", %{"to" => "world"})]
+        )
+
       assert T.equal(result, expect)
     end
 
@@ -305,11 +323,13 @@ defmodule PandoraTest do
         T.create_document(
           nil,
           nil,
-          [T.create_element(
-            "Hello",
-            %{},
-            [T.create_element("World", %{}, [T.create_text("!")])]
-          )]
+          [
+            T.create_element(
+              "Hello",
+              %{},
+              [T.create_element("World", %{}, [T.create_text("!")])]
+            )
+          ]
         )
 
       assert T.equal(result, expect)
@@ -323,12 +343,14 @@ defmodule PandoraTest do
         T.create_document(
           nil,
           nil,
-          [T.create_ns_element(
-            "Hello",
-            "World",
-            %{},
-            [T.create_text("!")]
-          )]
+          [
+            T.create_ns_element(
+              "Hello",
+              "World",
+              %{},
+              [T.create_text("!")]
+            )
+          ]
         )
 
       assert T.equal(result, expect)
@@ -342,10 +364,12 @@ defmodule PandoraTest do
         T.create_document(
           nil,
           nil,
-          [T.create_element(
-            "boo",
-            %{ {"t", "bar"} => "baz" }
-          )]
+          [
+            T.create_element(
+              "boo",
+              %{{"t", "bar"} => "baz"}
+            )
+          ]
         )
 
       assert T.equal(result, expect)
@@ -359,11 +383,13 @@ defmodule PandoraTest do
         T.create_document(
           nil,
           nil,
-          [T.create_element("Group", %{}, [
-            T.create_text("do: "),
-            T.create_element("Hello"),
-            T.create_element("World"),
-          ])]
+          [
+            T.create_element("Group", %{}, [
+              T.create_text("do: "),
+              T.create_element("Hello"),
+              T.create_element("World")
+            ])
+          ]
         )
 
       assert T.equal(result, expect)
@@ -412,44 +438,54 @@ defmodule PandoraTest do
     end
 
     test "document with declaration, doctype & body" do
-      {:ok, result} = T.from_string(Enum.join([
-        "<?xml version=\"1.0\"?>",
-        "<!DOCTYPE document>",
-        "<document>",
-        "<hello \nto=\"world\"/>",
-        "</document>",
-      ]))
+      {:ok, result} =
+        T.from_string(
+          Enum.join([
+            "<?xml version=\"1.0\"?>",
+            "<!DOCTYPE document>",
+            "<document>",
+            "<hello \nto=\"world\"/>",
+            "</document>"
+          ])
+        )
 
       expect =
         T.create_document(
           Data.declaration(version: "1.0"),
           Data.doctype(root_node: "document"),
-          [T.create_element("document", %{}, [
-            T.create_element("hello", %{ "to" => "world" }),
-          ])]
+          [
+            T.create_element("document", %{}, [
+              T.create_element("hello", %{"to" => "world"})
+            ])
+          ]
         )
 
       assert T.equal(result, expect)
     end
 
     test "with comment before doctype" do
-      {:ok, result} = T.from_string(Enum.join([
-        "<?xml version=\"1.0\"?>",
-        "<!-- hello -->",
-        "<!DOCTYPE document>",
-        "<document>",
-        "<hello \nto=\"world\"/>",
-        "</document>",
-      ]))
+      {:ok, result} =
+        T.from_string(
+          Enum.join([
+            "<?xml version=\"1.0\"?>",
+            "<!-- hello -->",
+            "<!DOCTYPE document>",
+            "<document>",
+            "<hello \nto=\"world\"/>",
+            "</document>"
+          ])
+        )
 
       expect =
         T.create_document(
           Data.declaration(version: "1.0"),
           Data.doctype(root_node: "document"),
-          [T.create_comment(" hello "),
-           T.create_element("document", %{}, [
-            T.create_element("hello", %{ "to" => "world" }),
-          ])]
+          [
+            T.create_comment(" hello "),
+            T.create_element("document", %{}, [
+              T.create_element("hello", %{"to" => "world"})
+            ])
+          ]
         )
 
       assert T.equal(result, expect)
