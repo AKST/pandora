@@ -22,7 +22,7 @@ defmodule Pandora do
   end
 
   def create_ns_element(ns, tn, attributes \\ %{}, children \\ [])
-      when is_binary(tn) and is_binary(ns) and is_map(attributes) and is_list(children)  do
+      when is_binary(tn) and is_binary(ns) and is_map(attributes) and is_list(children) do
     Data.element(
       name: tn,
       namespace: ns,
@@ -96,7 +96,7 @@ defmodule Pandora do
     false
   end
 
-  @spec from_string(string :: String.t()) :: {:ok, Data.document} | {:error, any}
+  @spec from_string(string :: String.t()) :: {:ok, Data.document()} | {:error, any}
   def from_string(string) do
     Parse.from_string(string)
   end
@@ -106,6 +106,7 @@ defmodule Pandora do
     state = ""
     state = to_string_xml_declaration(declaration, state, with_state)
     state = to_string_doctype(doctype, state, with_state)
+
     Queue.reduce(nodes, state, fn node, state ->
       to_string_impl(node, state, with_state)
     end)
@@ -117,53 +118,65 @@ defmodule Pandora do
   end
 
   defp to_string_xml_declaration(nil, state, _), do: state
+
   defp to_string_xml_declaration(declaration, state, with_state) do
     {:declaration, version, encoding, standalone} = declaration
     state = with_state.(state, "<?xml")
-    state = if version != nil,
-      do: with_state.(state, " version=\"#{version}\""),
-      else: state
-    state = case encoding do
-      nil -> state
-      :utf8 -> with_state.(state, " encoding=\"UTF-8\"")
-    end
-    state = case standalone do
-      nil -> state
-      true -> with_state.(state, " standalone=\"yes\"")
-      false -> with_state.(state, " standalone=\"no\"")
-    end
+
+    state =
+      if version != nil,
+        do: with_state.(state, " version=\"#{version}\""),
+        else: state
+
+    state =
+      case encoding do
+        nil -> state
+        :utf8 -> with_state.(state, " encoding=\"UTF-8\"")
+      end
+
+    state =
+      case standalone do
+        nil -> state
+        true -> with_state.(state, " standalone=\"yes\"")
+        false -> with_state.(state, " standalone=\"no\"")
+      end
+
     with_state.(state, "?>")
   end
 
   defp to_string_doctype(nil, state, _), do: state
+
   defp to_string_doctype(doctype, state, with_state) do
     {:doctype, root_node, dtds} = doctype
     state = with_state.(state, "<!DOCTYPE #{root_node}")
-    state = Enum.reduce(dtds, state, fn dtd, state ->
-      case dtd do
-        {:public, location, url} ->
-          with_state.(state, " PUBLIC \"#{location}\" \"#{url}\"")
 
-        {:system, url} ->
-          with_state.(state, " SYSTEM \"#{url}\"")
+    state =
+      Enum.reduce(dtds, state, fn dtd, state ->
+        case dtd do
+          {:public, location, url} ->
+            with_state.(state, " PUBLIC \"#{location}\" \"#{url}\"")
 
-        {:inlined, content} ->
-          with_state.(state, " [#{content}]")
-      end
-    end)
+          {:system, url} ->
+            with_state.(state, " SYSTEM \"#{url}\"")
+
+          {:inlined, content} ->
+            with_state.(state, " [#{content}]")
+        end
+      end)
+
     with_state.(state, ">")
   end
 
   defp to_string_impl(node, state, with_state) do
     tag_name_to_string = fn
-      (nil, name) -> name
-      (namespace, name) -> "#{namespace}:#{name}"
+      nil, name -> name
+      namespace, name -> "#{namespace}:#{name}"
     end
 
-    attributes_to_string = fn (state, attributes) ->
+    attributes_to_string = fn state, attributes ->
       Enum.reduce(attributes, state, fn
-        ({{nk, ak}, v}, state) -> with_state.(state, " #{nk}:#{ak}=\"#{v}\"")
-        ({k, v}, state) -> with_state.(state, " #{k}=\"#{v}\"")
+        {{nk, ak}, v}, state -> with_state.(state, " #{nk}:#{ak}=\"#{v}\"")
+        {k, v}, state -> with_state.(state, " #{k}=\"#{v}\"")
       end)
     end
 
@@ -179,6 +192,7 @@ defmodule Pandora do
 
       {:element, name, ns, attributes, children} ->
         tag_name_str = tag_name_to_string.(ns, name)
+
         if Queue.length(children) > 0 do
           state = with_state.(state, "<#{tag_name_str}")
           state = attributes_to_string.(state, attributes)
